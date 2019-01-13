@@ -1,8 +1,9 @@
 package fr.epsi.book.domain;
 
+import java.io.Serializable;
 import java.util.UUID;
 
-public class Contact {
+public class Contact implements Serializable {
 	
 	private String id;
 	private String name;

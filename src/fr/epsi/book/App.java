@@ -3,15 +3,22 @@ package fr.epsi.book;
 import fr.epsi.book.domain.Book;
 import fr.epsi.book.domain.Contact;
 
-import java.util.HashMap;
-import java.util.InputMismatchException;
-import java.util.Map;
-import java.util.Scanner;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 public class App {
 	
+	private static final String BOOK_BKP_DIR = "./resources/backup/";
+	
 	private static final Scanner sc = new Scanner( System.in );
-	private static final Book book = new Book();
+	private static Book book = new Book();
 	
 	public static void main( String... args ) {
 		dspMainMenu();
@@ -157,7 +164,7 @@ public class App {
 												  .put( entry.getKey(), entry.getValue() ), Map::putAll );
 		
 		if ( subSet.size() > 0 ) {
-			System.out.println( subSet.size()+" contact(s) trouvé(s) : " );
+			System.out.println( subSet.size() + " contact(s) trouvé(s) : " );
 			subSet.entrySet().forEach( entry -> dspContact( entry.getValue() ) );
 		} else {
 			System.out.println( "Aucun contact trouvé avec cet identifiant ..." );
@@ -197,7 +204,9 @@ public class App {
 			System.out.println( "* 4 - Lister les contacts            *" );
 			System.out.println( "* 5 - Rechercher un contact          *" );
 			System.out.println( "* 6 - Trier les contacts             *" );
-			System.out.println( "* 7 - Quitter                        *" );
+			System.out.println( "* 7 - Sauvegarder                    *" );
+			System.out.println( "* 8 - Restaurer                      *" );
+			System.out.println( "* 9 - Quitter                        *" );
 			System.out.println( "**************************************" );
 			System.out.print( "*Votre choix : " );
 			try {
@@ -208,7 +217,7 @@ public class App {
 				sc.nextLine();
 			}
 			first = false;
-		} while ( 1 > response || 7 < response );
+		} while ( 1 > response || 9 < response );
 		switch ( response ) {
 			case 1:
 				addContact();
@@ -234,6 +243,55 @@ public class App {
 				sort();
 				dspMainMenu();
 				break;
+			case 7:
+				storeContacts();
+				dspMainMenu();
+				break;
+			case 8:
+				restoreContacts();
+				dspMainMenu();
+				break;
+		}
+	}
+	
+	private static void storeContacts() {
+		
+		Path path = Paths.get( BOOK_BKP_DIR );
+		if ( !Files.isDirectory( path ) ) {
+			try {
+				Files.createDirectory( path );
+			} catch ( IOException e ) {
+				e.printStackTrace();
+			}
+		}
+		String backupFileName = new SimpleDateFormat( "yyyy-MM-dd-hh-mm-ss" ).format( new Date() ) + ".ser";
+		try ( ObjectOutputStream oos = new ObjectOutputStream( Files
+				.newOutputStream( Paths.get( BOOK_BKP_DIR + backupFileName ) ) ) ) {
+			oos.writeObject( book );
+			System.out.println( "Sauvegarde terminée : fichier " + backupFileName );
+		} catch ( IOException e ) {
+			e.printStackTrace();
+		}
+	}
+	
+	private static void restoreContacts() {
+		
+		try ( DirectoryStream<Path> ds = Files.newDirectoryStream( Paths.get( BOOK_BKP_DIR ), "*.ser" ) ) {
+			for ( Path path : ds ) {
+				System.out.println( "Restauration du fichier : " + path.getFileName() );
+				try ( ObjectInputStream ois = new ObjectInputStream( Files.newInputStream( path ) ) ) {
+					book = ( Book ) ois.readObject();
+					System.out.println( "Restauration terminée : fichier " + path.getFileName() );
+					break;
+				} catch ( ClassNotFoundException e ) {
+					e.printStackTrace();
+				} catch ( IOException e ) {
+					e.printStackTrace();
+				}
+			}
+			//ds.forEach( path -> System.out.println( path.getFileName() ) );
+		} catch ( IOException e ) {
+			e.printStackTrace();
 		}
 	}
 }
