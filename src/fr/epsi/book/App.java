@@ -6,6 +6,8 @@ import fr.epsi.book.domain.Contact;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
+
+import java.io.File;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -283,10 +285,38 @@ public class App {
 	}
 	
 	private static void restoreContacts() {
+		int response;
+		List<File> listOfSave = new ArrayList<>();
+		
+		try{
+			File dir = new File(BOOK_BKP_DIR);
+			File[] listOfFiles = dir.listFiles();
+			System.out.println("**************************************");
+			for (int i = 0; i < listOfFiles.length; i++) {
+				  if (listOfFiles[i].isFile()) {
+				    listOfSave.add(listOfFiles[i]);
+				    System.out.println("* "+listOfSave.size()+" - "+ listOfFiles[i].getName());
+				  }
+				}
+		}catch(Exception e) {
+			e.printStackTrace();
+		}
+		System.out.println("* "+((int)listOfSave.size()+1)+" - retour");
+		
+		try {
+			response = sc.nextInt();
+		} catch ( InputMismatchException e ) {
+			response = -1;
+		} finally {
+			sc.nextLine();
+		}
+		
+		System.out.println(response);
 		
 		try ( DirectoryStream<Path> ds = Files.newDirectoryStream( Paths.get( BOOK_BKP_DIR ), "*.ser" ) ) {
-			
+			System.out.println(ds);
 			for ( Path path : ds ) {
+				System.out.println(path);
 				System.out.println( "Restauration du fichier : " + path.getFileName() );
 				try ( ObjectInputStream ois = new ObjectInputStream( Files.newInputStream( path ) ) ) {
 					book = ( Book ) ois.readObject();
