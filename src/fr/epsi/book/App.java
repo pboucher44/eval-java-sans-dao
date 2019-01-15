@@ -3,6 +3,9 @@ package fr.epsi.book;
 import fr.epsi.book.domain.Book;
 import fr.epsi.book.domain.Contact;
 
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -206,7 +209,8 @@ public class App {
 			System.out.println( "* 6 - Trier les contacts             *" );
 			System.out.println( "* 7 - Sauvegarder                    *" );
 			System.out.println( "* 8 - Restaurer                      *" );
-			System.out.println( "* 9 - Quitter                        *" );
+			System.out.println( "* 9 - Export des contacts            *" );
+			System.out.println( "* 10 - Quitter                       *" );
 			System.out.println( "**************************************" );
 			System.out.print( "*Votre choix : " );
 			try {
@@ -217,7 +221,7 @@ public class App {
 				sc.nextLine();
 			}
 			first = false;
-		} while ( 1 > response || 9 < response );
+		} while ( 1 > response || 10 < response );
 		switch ( response ) {
 			case 1:
 				addContact();
@@ -251,6 +255,10 @@ public class App {
 				restoreContacts();
 				dspMainMenu();
 				break;
+			case 9:
+				exportContacts();
+				dspMainMenu();
+				break;
 		}
 	}
 	
@@ -277,6 +285,7 @@ public class App {
 	private static void restoreContacts() {
 		
 		try ( DirectoryStream<Path> ds = Files.newDirectoryStream( Paths.get( BOOK_BKP_DIR ), "*.ser" ) ) {
+			
 			for ( Path path : ds ) {
 				System.out.println( "Restauration du fichier : " + path.getFileName() );
 				try ( ObjectInputStream ois = new ObjectInputStream( Files.newInputStream( path ) ) ) {
@@ -291,6 +300,19 @@ public class App {
 			}
 			//ds.forEach( path -> System.out.println( path.getFileName() ) );
 		} catch ( IOException e ) {
+			e.printStackTrace();
+		}
+	}
+	
+	private static void exportContacts() {
+		
+		try {
+			JAXBContext context = JAXBContext.newInstance( Book.class );
+			Marshaller marshaller = context.createMarshaller();
+			marshaller.setProperty( Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE );
+			marshaller.marshal( book, System.out );
+			marshaller.marshal( book, System.out );
+		} catch ( JAXBException e ) {
 			e.printStackTrace();
 		}
 	}

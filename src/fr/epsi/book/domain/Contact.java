@@ -1,8 +1,10 @@
 package fr.epsi.book.domain;
 
+import javax.xml.bind.annotation.XmlType;
 import java.io.Serializable;
 import java.util.UUID;
 
+@XmlType
 public class Contact implements Serializable {
 	
 	private String id;
