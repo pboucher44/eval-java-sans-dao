@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 package fr.epsi.book;
 
 import fr.epsi.book.domain.Book;
