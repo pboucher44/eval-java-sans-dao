@@ -6,6 +6,10 @@ import fr.epsi.book.domain.Contact;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -19,6 +23,7 @@ import java.util.*;
 public class App {
 	
 	private static final String BOOK_BKP_DIR = "./resources/backup/";
+	private static final String EXPORT_CSV_DIR = "./resources/CSV/";
 	
 	private static final Scanner sc = new Scanner( System.in );
 	private static Book book = new Book();
@@ -305,7 +310,73 @@ public class App {
 	}
 	
 	private static void exportContacts() {
-		
+		boolean first = true;
+		int response;
+		do {
+			if ( !first ) {
+				System.out.println( "***********************************************" );
+				System.out.println( "* Mauvais choix, merci de recommencer !       *" );
+				System.out.println( "***********************************************" );
+			}
+			System.out.println( "**************************************" );
+			System.out.println( "*****************Menu*****************" );
+			System.out.println( "* 1 - exporter en CSV                *" );
+			System.out.println( "* 2 - exporter en XML                *" );
+			System.out.println( "* 3 - retour                         *" );
+			System.out.println( "**************************************" );
+			
+			System.out.print( "*Votre choix : " );
+			
+			try {
+				response = sc.nextInt();
+			} catch ( InputMismatchException e ) {
+				response = -1;
+			} finally {
+				sc.nextLine();
+			}
+			first=false;
+		} while ( 1 > response || 3 < response );
+		switch ( response ) {
+			case 1:
+				exportCSV();
+				dspMainMenu();
+				break;
+			case 2:
+				exportXML();
+				dspMainMenu();
+				break;
+			case 3:
+				dspMainMenu();
+				break;
+		}		
+	}
+	
+	private static void exportCSV() {
+		StringBuilder sb = new StringBuilder();
+		String sdf = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss").format( new Date() );
+
+        
+        
+        try (BufferedWriter bw = Files.newBufferedWriter( Paths.get( EXPORT_CSV_DIR + sdf + ".csv" ) ) ) {
+  			String lineTmp = null;
+  			
+  			bw.append("Nom");
+  			bw.append(',');
+  			bw.append("Email");
+  			bw.append('\n');
+  	        
+  			for(Map.Entry<String, Contact> entry : book.getContacts().entrySet()) {
+  			    bw.append(entry.getValue().getName());
+    			bw.append(',');
+    			bw.append(entry.getValue().getEmail());
+    			bw.append('\n');
+  			}  			
+  		} catch ( IOException e ) {
+  			e.printStackTrace();
+  		}
+	}
+	
+	private static void exportXML() {
 		try {
 			JAXBContext context = JAXBContext.newInstance( Book.class );
 			Marshaller marshaller = context.createMarshaller();
@@ -316,4 +387,5 @@ public class App {
 			e.printStackTrace();
 		}
 	}
+	
 }

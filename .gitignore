@@ -11,3 +11,4 @@
 *.iws
 *.iml
 *.ipr
+/bin/
