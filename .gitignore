@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 /out/
 
 ### Eclipse ###
@@ -11,19 +10,5 @@
 .idea
 *.iws
 *.iml
-=======
-/out/
-
-### Eclipse ###
-.classpath
-.factorypath
-.project
-.settings
-
-### IntelliJ IDEA ###
-.idea
-*.iws
-*.iml
->>>>>>> branch 'master' of https://github.com/pboucher44/epsi-b3-1819-eval.git
 *.ipr
 /bin/
