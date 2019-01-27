@@ -1,5 +1,7 @@
 package fr.epsi.book;
 
+import fr.epsi.book.dal.BookDAO;
+import fr.epsi.book.dal.ContactDAO;
 import fr.epsi.book.domain.Book;
 import fr.epsi.book.domain.Contact;
 
@@ -15,8 +17,12 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.regex.Pattern;
+
+
 
 public class App {
 
@@ -25,8 +31,12 @@ public class App {
 
 	private static final Scanner sc = new Scanner(System.in);
 	private static Book book = new Book();
+	
+	private static ContactDAO monContactDao = new ContactDAO();
+	private static BookDAO monBookDao = new BookDAO();
 
-	public static void main(String... args) {
+	public static void main(String... args) throws SQLException {
+		monBookDao.create(book);
 		dspMainMenu();
 	}
 
@@ -40,7 +50,7 @@ public class App {
 				System.out.println("***********************************************");
 			}
 			System.out.println("*******Choix type de contact *******");
-			System.out.println("* 1 - Pero                         *");
+			System.out.println("* 1 - Perso                         *");
 			System.out.println("* 2 - Pro                          *");
 			System.out.println("************************************");
 			System.out.print("*Votre choix : ");
@@ -66,12 +76,22 @@ public class App {
 		contact.setEmail(sc.nextLine());
 		System.out.print("Entrer le téléphone :");
 		contact.setPhone(sc.nextLine());
+		while(!Pattern.matches("^(0)[1-9](\\d{2}){4}$",contact.getPhone())) {
+			System.out.print("Entrez un numero valide :");
+			contact.setPhone(sc.nextLine());
+		}
 		contact.setType(getTypeFromKeyboard());
 		book.addContact(contact);
+		try {
+			monContactDao.create(contact, book.getId());
+		} catch (SQLException e) {
+			System.err.println("erreur lors de l'insertion du contact dans la BDD");
+			e.printStackTrace();
+		}
 		System.out.println("Nouveau contact ajouté ...");
 	}
 
-	public static void editContact() {
+	public static void editContact() throws SQLException {
 		System.out.println("*********************************************");
 		System.out.println("**********Modification d'un contact**********");
 		dspContacts(false);
@@ -98,11 +118,12 @@ public class App {
 			if (!phone.isEmpty()) {
 				contact.setPhone(phone);
 			}
+			monContactDao.update(contact);
 			System.out.println("Le contact a bien été modifié ...");
 		}
 	}
 
-	public static void deleteContact() {
+	public static void deleteContact() throws SQLException {
 		System.out.println("*********************************************");
 		System.out.println("***********Suppression d'un contact**********");
 		dspContacts(false);
@@ -112,6 +133,7 @@ public class App {
 		if (null == contact) {
 			System.out.println("Aucun contact trouvé avec cet identifiant ...");
 		} else {
+			monContactDao.remove(contact);
 			System.out.println("Le contact a bien été supprimé ...");
 		}
 	}
@@ -179,18 +201,18 @@ public class App {
 				+ "\t\t\t\t" + contact.getPhone() + "\t\t\t\t" + contact.getType());
 	}
 
-	public static void dspContacts(boolean dspHeader) {
+	public static void dspContacts(boolean dspHeader) throws NumberFormatException, SQLException {
 		if (dspHeader) {
 			System.out.println("**************************************");
 			System.out.println("********Liste de vos contacts*********");
 		}
-		for (Map.Entry<String, Contact> entry : book.getContacts().entrySet()) {
+		for (Map.Entry<String, Contact> entry : monBookDao.findById(book.getId()).getContacts().entrySet()) {
 			dspContact(entry.getValue());
 		}
 		System.out.println("**************************************");
 	}
 
-	public static void dspMainMenu() {
+	public static void dspMainMenu() throws SQLException {
 		int response;
 		boolean first = true;
 		do {
@@ -259,12 +281,20 @@ public class App {
 			exportContacts();
 			dspMainMenu();
 			break;
+		case 10:
+			monBookDao.removeAll();
+			monContactDao.removeAll();
+			break;
 		}
 	}
 
-	private static void storeContacts() {
-
+	private static void storeContacts() throws NumberFormatException, SQLException {
+	
 		Path path = Paths.get(BOOK_BKP_DIR);
+		boolean first = true;
+		String response = "";
+		String regex = "^[a-zA-Z0-9_+-]*$";
+		
 		if (!Files.isDirectory(path)) {
 			try {
 				Files.createDirectory(path);
@@ -272,17 +302,35 @@ public class App {
 				e.printStackTrace();
 			}
 		}
-		String backupFileName = new SimpleDateFormat("yyyy-MM-dd-hh-mm-ss").format(new Date()) + ".ser";
+		
+		do {
+			if (!first) {
+				System.out.println("***********************************************");
+				System.out.println("* Mauvais choix, merci de recommencer !       *");
+				System.out.println("***********************************************");
+			}
+
+			System.out.print("* nom du fichier : ");
+
+			try {
+				response = sc.nextLine();
+			} catch (InputMismatchException e) {
+				response = "";
+			}
+			first = false;
+		} while (!Pattern.matches(regex,response));
+		
+		String backupFileName = response + ".ser";
 		try (ObjectOutputStream oos = new ObjectOutputStream(
 				Files.newOutputStream(Paths.get(BOOK_BKP_DIR + backupFileName)))) {
-			oos.writeObject(book);
+			oos.writeObject(monBookDao.findById(book.getId()));
 			System.out.println("Sauvegarde terminée : fichier " + backupFileName);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-	}
+	}	
 
-	private static void restoreContacts() {
+	private static void restoreContacts() throws SQLException {
 		List <Path> lesPaths = new ArrayList<Path>();
 		boolean first = true;
 		int compteur = 1;
@@ -319,16 +367,17 @@ public class App {
 				response = sc.nextInt();
 			} catch ( InputMismatchException e ) {
 				response = -1;
+			} finally {
+				sc.nextLine();
 			}
 			first=false;
 		} while ( 1 > response || lesPaths.size() < response );
 		
-		
-		
-		
 			System.out.println( "Restauration du fichier : " + lesPaths.get(response-1) );
 			try ( ObjectInputStream ois = new ObjectInputStream( Files.newInputStream( lesPaths.get(response-1) ) ) ) {
 				book = ( Book ) ois.readObject();
+				book.setCode(book.getId());
+				monBookDao.create(book);
 				System.out.println( "Restauration terminée : fichier " + lesPaths.get(response-1).getFileName() );
 			} catch ( ClassNotFoundException e ) {
 				e.printStackTrace();
@@ -339,7 +388,7 @@ public class App {
 		
 	}
 
-	private static void exportContacts() {
+	private static void exportContacts() throws SQLException {
 		boolean first = true;
 		int response;
 		do {

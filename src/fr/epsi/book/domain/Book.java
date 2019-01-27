@@ -18,6 +18,7 @@ public class Book implements Serializable {
 	
 	public Book() {
 		id = UUID.randomUUID().toString();
+		code = id;
 		contacts = new HashMap<>(  );
 	}
 	

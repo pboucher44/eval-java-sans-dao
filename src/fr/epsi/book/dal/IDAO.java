@@ -3,15 +3,13 @@ package fr.epsi.book.dal;
 import java.sql.SQLException;
 import java.util.List;
 
+import fr.epsi.book.domain.Contact;
+
 public interface IDAO<E, ID> {
 	
-	public void create( E o ) throws SQLException;
+	public List<E> findAll() throws SQLException;
 	
-	public E findById( ID id );
+	public E update( E o ) throws SQLException;
 	
-	public List<E> findAll();
-	
-	public E update( E o );
-	
-	public void remove( E o );
+	public void remove( E o ) throws SQLException;
 }
