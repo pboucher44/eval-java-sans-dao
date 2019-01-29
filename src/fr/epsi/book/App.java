@@ -1,7 +1,5 @@
 package fr.epsi.book;
 
-import fr.epsi.book.dal.BookDAO;
-import fr.epsi.book.dal.ContactDAO;
 import fr.epsi.book.domain.Book;
 import fr.epsi.book.domain.Contact;
 
@@ -31,12 +29,8 @@ public class App {
 
 	private static final Scanner sc = new Scanner(System.in);
 	private static Book book = new Book();
-	
-	private static ContactDAO monContactDao = new ContactDAO();
-	private static BookDAO monBookDao = new BookDAO();
 
 	public static void main(String... args) throws SQLException {
-		monBookDao.create(book);
 		dspMainMenu();
 	}
 
@@ -82,12 +76,6 @@ public class App {
 		}
 		contact.setType(getTypeFromKeyboard());
 		book.addContact(contact);
-		try {
-			monContactDao.create(contact, book.getId());
-		} catch (SQLException e) {
-			System.err.println("erreur lors de l'insertion du contact dans la BDD");
-			e.printStackTrace();
-		}
 		System.out.println("Nouveau contact ajouté ...");
 	}
 
@@ -118,7 +106,6 @@ public class App {
 			if (!phone.isEmpty()) {
 				contact.setPhone(phone);
 			}
-			monContactDao.update(contact);
 			System.out.println("Le contact a bien été modifié ...");
 		}
 	}
@@ -133,7 +120,6 @@ public class App {
 		if (null == contact) {
 			System.out.println("Aucun contact trouvé avec cet identifiant ...");
 		} else {
-			monContactDao.remove(contact);
 			System.out.println("Le contact a bien été supprimé ...");
 		}
 	}
@@ -206,7 +192,7 @@ public class App {
 			System.out.println("**************************************");
 			System.out.println("********Liste de vos contacts*********");
 		}
-		for (Map.Entry<String, Contact> entry : monBookDao.findById(book.getId()).getContacts().entrySet()) {
+		for (Map.Entry<String, Contact> entry : book.getContacts().entrySet()) {
 			dspContact(entry.getValue());
 		}
 		System.out.println("**************************************");
@@ -281,10 +267,6 @@ public class App {
 			exportContacts();
 			dspMainMenu();
 			break;
-		case 10:
-			monBookDao.removeAll();
-			monContactDao.removeAll();
-			break;
 		}
 	}
 
@@ -323,7 +305,7 @@ public class App {
 		String backupFileName = response + ".ser";
 		try (ObjectOutputStream oos = new ObjectOutputStream(
 				Files.newOutputStream(Paths.get(BOOK_BKP_DIR + backupFileName)))) {
-			oos.writeObject(monBookDao.findById(book.getId()));
+			oos.writeObject(book.getId());
 			System.out.println("Sauvegarde terminée : fichier " + backupFileName);
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -377,7 +359,6 @@ public class App {
 			try ( ObjectInputStream ois = new ObjectInputStream( Files.newInputStream( lesPaths.get(response-1) ) ) ) {
 				book = ( Book ) ois.readObject();
 				book.setCode(book.getId());
-				monBookDao.create(book);
 				System.out.println( "Restauration terminée : fichier " + lesPaths.get(response-1).getFileName() );
 			} catch ( ClassNotFoundException e ) {
 				e.printStackTrace();
